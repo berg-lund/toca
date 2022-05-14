@@ -69,14 +69,14 @@ void ResSensor::update()
   // if timer is over sensorLag and !state and cooldown time since last note is reaced then noteOn
   if ((noteOnTimer > sensorLag) && !state && (millis() > (midiCooldownTimer + midiCooldown)))
   {
-    noteOn(padNum, getVelocity());
+    noteOn(padNum, getVelocity(), false);
     state = true;
   }
 
   // if average under threshold and state then noteOff
   if ((averagedValue < threshold) && state)
   {
-    noteOff(padNum, 0);
+    noteOff(padNum, 0, false);
 
     midiCooldownTimer = millis();
     state = false;
@@ -87,7 +87,7 @@ void ResSensor::sendPressure()
 {
   if (state)
   {
-    pressure(padNum, averagedValue);
+    pressure(padNum, averagedValue, false);
   }
 }
 

@@ -4,11 +4,14 @@
 #include <MIDI.h>
 #include "ResSensor.h"
 #include "buttonHandler.h"
+#include "TapeRecall.h"
 
 /*
 
 ------TO DO------
-* Implement SPI ADC
+* fix last two channels of ADC
+* RTOS crashes when flashed
+* add start recal of set value on buttonpress
 
 * Is setting up the pins with input pulldown (in ResSensor.setup()) affecting the values read by them?
 * Create button handler
@@ -20,7 +23,7 @@
 * Check where to use byte and where int
 * Exclude libraries that aren't needed
 
-* Check logic in ResSensor.
+* change buttonHandler name to ButtonHandler
 
 # Serial communication is buffered and not realtime. Debugg through MIDIOx
 # Serial communication doesn't initiate until a while. between 100 and 4000 loops. Doesn't need a fix just remember.
@@ -49,6 +52,9 @@ const u_int16_t PIN_CLK = 18; // clock/SCK     (pico pin 24)
 buttonHandler button1;
 const byte buttonPin = 0;
 const byte buttonDebounceDelay = 20;
+
+// ----- Tape -----
+TapeRecall tape;
 
 // ---- Global Const ----
 const u_int16_t noteMaxspeed = 32;  // Wait in millis from note off to new note on
@@ -79,9 +85,9 @@ void sendCC();
 
 //---- Define Callbacks ----
 void handleClock();
-void handleNoteOn(byte padNum, u_int16_t velocity);
-void handleNoteOff(byte padNum, u_int16_t velocity);
-void handlePressure(byte padNum, u_int16_t pressure);
+void handleNoteOn(byte padNum, u_int16_t velocity, bool playback = false);
+void handleNoteOff(byte padNum, u_int16_t velocity, bool playback = false);
+void handlePressure(byte padNum, u_int16_t pressure, bool playback = false);
 void startRecall(byte tapeChannel, u_int32_t length);
 void endRecall(byte tapeChannel);
 void LEDHandler(byte state);
@@ -121,6 +127,9 @@ void setup()
   // ----- Buttons -----
   button1.setup(buttonPin, buttonDebounceDelay, false);
 
+  // ----- Tape -----
+  tape.setup();
+
   // wait until device mounted
   while (!TinyUSBDevice.mounted())
     delay(1);
@@ -144,7 +153,7 @@ void loop()
   }
   sendCC();
   // LEDHandler.update();
-  // Tape.update();
+  tape.playback(clockValue, lastClock);
 
   // Recive new midi
   MIDI.read();
@@ -173,13 +182,18 @@ void handleClock()
   lastClock = time;
 }
 
-void handleNoteOn(byte padNum, u_int16_t velocity)
+void handleNoteOn(byte padNum, u_int16_t velocity, bool playback)
 {
   u_int16_t v = (velocity / 8) * rangeTune;
   v = constrain(v, 0, 127);
   MIDI.sendNoteOn(noteNum[padNum], v, channelNum[padNum]);
   //## CV gate on
   //## Indicate with led?
+  // if not playing back add to tape
+  if (!playback)
+  {
+    tape.addEvent(v, padNum, millis());
+  }
   SerialTinyUSB.print(" Note on. Pad = ");
   SerialTinyUSB.print(padNum);
   SerialTinyUSB.print("\t Sensor value = ");
@@ -188,19 +202,30 @@ void handleNoteOn(byte padNum, u_int16_t velocity)
   SerialTinyUSB.println(v);
 }
 
-void handleNoteOff(byte padNum, u_int16_t velocity)
+void handleNoteOff(byte padNum, u_int16_t velocity, bool playback)
 {
   MIDI.sendNoteOn(noteNum[padNum], 0, channelNum[padNum]);
   //## CV gate of
+  // if not playing back add to tape
+  if (!playback)
+  {
+    tape.addEvent(0, padNum, millis());
+  }
   SerialTinyUSB.print(" Note off. Pad = ");
   SerialTinyUSB.println(padNum);
 }
 
-void handlePressure(byte padNum, u_int16_t pressure)
+void handlePressure(byte padNum, u_int16_t pressure, bool playback)
 {
   u_int16_t p = (pressure / 8) * rangeTune;
   p = constrain(p, 0, 127);
   MIDI.sendControlChange(ccChannels[padNum], p, channelNum[padNum]);
+
+  // if not playing back add to tape
+  if (!playback)
+  {
+    tape.addEvent(127 + p, padNum, millis());
+  }
 
   SerialTinyUSB.print("Pressure p: ");
   SerialTinyUSB.print(p);

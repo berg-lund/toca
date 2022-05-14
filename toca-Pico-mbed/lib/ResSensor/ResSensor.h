@@ -36,7 +36,7 @@ private:
   unsigned long midiCooldownTimer;
 
   // callbacks
-  typedef void (*GeneralCallback)(byte padNum, u_int16_t value);
+  typedef void (*GeneralCallback)(byte padNum, u_int16_t value, bool playback);
   GeneralCallback noteOn, noteOff, pressure;
   typedef u_int16_t (*GeneralADCCallback)(byte padNum);
   GeneralADCCallback ADCCallback;
