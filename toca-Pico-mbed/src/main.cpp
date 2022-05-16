@@ -4,13 +4,13 @@
 #include <MIDI.h>
 #include "ResSensor.h"
 #include "buttonHandler.h"
-#include "TapeRecall.h"
+//#include "TapeRecall.h"
 
 /*
 
 ------TO DO------
 * fix last two channels of ADC
-* RTOS crashes when flashed
+* Reinclude TapeTecall and fix RTOS crashes when flashed
 * add start recal of set value on buttonpress
 
 * Is setting up the pins with input pulldown (in ResSensor.setup()) affecting the values read by them?
@@ -44,7 +44,7 @@ Adafruit_MCP3008 adc;
 
 // spi pins
 const u_int16_t PIN_CS = 17;  // chip select   (pico pin 22)
-const u_int16_t PIN_TX = 19;  // mosi/MCP Din  (pico pin 25)
+const u_int16_t PIN_TX = 19;  // mosi/MCP Din  (pico pin 25)ä
 const u_int16_t PIN_RX = 16;  // miso/MCP DOut (pico pin 21)
 const u_int16_t PIN_CLK = 18; // clock/SCK     (pico pin 24)
 
@@ -54,7 +54,7 @@ const byte buttonPin = 0;
 const byte buttonDebounceDelay = 20;
 
 // ----- Tape -----
-TapeRecall tape;
+// TapeRecall tape;
 
 // ---- Global Const ----
 const u_int16_t noteMaxspeed = 32;  // Wait in millis from note off to new note on
@@ -128,7 +128,7 @@ void setup()
   button1.setup(buttonPin, buttonDebounceDelay, false);
 
   // ----- Tape -----
-  tape.setup();
+  // tape.setup();
 
   // wait until device mounted
   while (!TinyUSBDevice.mounted())
@@ -153,7 +153,7 @@ void loop()
   }
   sendCC();
   // LEDHandler.update();
-  tape.playback(clockValue, lastClock);
+  // tape.playback(clockValue, lastClock);
 
   // Recive new midi
   MIDI.read();
@@ -192,7 +192,7 @@ void handleNoteOn(byte padNum, u_int16_t velocity, bool playback)
   // if not playing back add to tape
   if (!playback)
   {
-    tape.addEvent(v, padNum, millis());
+    // tape.addEvent(v, padNum, millis());
   }
   SerialTinyUSB.print(" Note on. Pad = ");
   SerialTinyUSB.print(padNum);
@@ -209,7 +209,7 @@ void handleNoteOff(byte padNum, u_int16_t velocity, bool playback)
   // if not playing back add to tape
   if (!playback)
   {
-    tape.addEvent(0, padNum, millis());
+    // tape.addEvent(0, padNum, millis());
   }
   SerialTinyUSB.print(" Note off. Pad = ");
   SerialTinyUSB.println(padNum);
@@ -224,7 +224,7 @@ void handlePressure(byte padNum, u_int16_t pressure, bool playback)
   // if not playing back add to tape
   if (!playback)
   {
-    tape.addEvent(127 + p, padNum, millis());
+    // tape.addEvent(127 + p, padNum, millis());
   }
 
   SerialTinyUSB.print("Pressure p: ");
