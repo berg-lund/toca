@@ -57,19 +57,19 @@ const byte buttonDebounceDelay = 20;
 // TapeRecall tape;
 
 // ---- Global Const ----
-const u_int16_t noteMaxspeed = 32;  // Wait in millis from note off to new note on
+const u_int16_t noteMaxspeed = 48;  // Wait in millis from note off to new note on
 const u_int16_t ccMaxspeed = 150;   // Frequency to send MIDICC messages on. Value in millis.
-const u_int16_t sensorLag = 5;      // From first sensorvalue in millis to get abetter velocity value. Max value set by array size in ResSensor
+const u_int16_t sensorLag = 25;      // From first sensorvalue in millis to get abetter velocity value. Max value set by array size in ResSensor
 const u_int16_t midiCooldown = 150; // Minimum time between last note ended and new one
 
 const byte nSensors = 8;
-const u_int16_t threshold = 100;
+const u_int16_t threshold = 120;
 const u_int16_t averaging = 12;
-const u_int16_t sensorPins[nSensors] = {0, 1, 2, 3, 4, 5, 6, 7};
+const u_int16_t sensorPins[nSensors] = {7, 6, 5, 4, 3, 2, 1, 0};
 const u_int16_t noteNum[nSensors] = {50, 52, 53, 55, 57, 58, 60, 62};
 const u_int16_t channelNum[nSensors] = {1, 2, 3, 4, 5, 6, 7, 8};
 const u_int16_t ccChannels[nSensors] = {1, 1, 1, 1, 1, 1, 1, 1};
-const float rangeTune = 1.45;
+const float rangeTune = 1.0;
 
 // ---- Global Variables ----
 ResSensor sensors[nSensors];
