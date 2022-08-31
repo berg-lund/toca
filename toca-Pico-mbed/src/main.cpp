@@ -9,13 +9,13 @@
 /*
 
 ------TO DO------
-* solid led light for pictures
-* fix last two channels of ADC
+* Whats the difference between midiCooldown and noteMaxspeed?
+* Incorporate buttons with temp change LED functionality
+* fix last two channels of ADC. Does this not work?
 * Reinclude TapeTecall and fix RTOS crashes when flashed
 * add start recal of set value on buttonpress
 
 * Is setting up the pins with input pulldown (in ResSensor.setup()) affecting the values read by them?
-* Create button handler
 * Create tape function
 * Look into defining callsbacks in main.h file
 * How should LEDHandler behave? send events with timers or with lifespann?
@@ -24,8 +24,6 @@
 * Exclude libraries that aren't needed
 
 * Add CV functionality
-
-* change buttonHandler name to ButtonHandler
 
 # Serial communication is buffered and not realtime. Debugg through MIDIOx
 # Serial communication doesn't initiate until a while. between 100 and 4000 loops. Doesn't need a fix just remember.
@@ -78,7 +76,6 @@ const u_int16_t LED2_BPin = 13;
 // TapeRecall tape;
 
 // ---- Global Const ----
-const u_int16_t noteMaxspeed = 48;  // Wait in millis from note off to new note on
 const u_int16_t ccMaxspeed = 150;   // Frequency to send MIDICC messages on. Value in millis.
 const u_int16_t sensorLag = 25;     // From first sensorvalue in millis to get abetter velocity value. Max value set by array size in ResSensor
 const u_int16_t midiCooldown = 150; // Minimum time between last note ended and new one
@@ -138,7 +135,7 @@ void setup()
   // ---- Setup sensors ----
   for (int i = 0; i < nSensors; i++)
   {
-    sensors[i].setup(i, threshold, averaging, noteMaxspeed, sensorLag, midiCooldown);
+    sensors[i].setup(i, threshold, averaging, sensorLag, midiCooldown);
     sensors[i].setHandleEvents(handleNoteOn, handleNoteOff, handlePressure);
     sensors[i].setADCCallback(handleADC);
 
@@ -208,7 +205,7 @@ void handleClock()
     SerialTinyUSB.println(clockIndex);
   }
 
-  clockIndex = (clockIndex + 1) % 24;
+  clockIndex = (clockIndex + 1) % clockArrayLength;
   lastClock = time;
 }
 

@@ -7,7 +7,7 @@
 class ResSensor
 {
 public:
-  void setup(u_int16_t _padNum, u_int16_t _threshold, u_int16_t _averaging, u_int16_t _resetRate, u_int16_t _sensorLag, u_int16_t _midiCooldown);
+  void setup(u_int16_t _padNum, u_int16_t _threshold, u_int16_t _averaging, u_int16_t _sensorLag, u_int16_t _midiCooldown);
   void update();
   void sendPressure();
   bool isPressed();
@@ -17,7 +17,7 @@ public:
   u_int16_t getVelocity();
 
 private:
-  u_int16_t padNum, threshold, resetRate; // byte?
+  u_int16_t padNum, threshold; // byte?
   int averaging;
 
   const u_int16_t averageArraySize = 48;

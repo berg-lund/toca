@@ -1,14 +1,13 @@
 #include "ResSensor.h"
 #include <Adafruit_TinyUSB.h>
 
-void ResSensor::setup(u_int16_t _padNum, u_int16_t _threshold, u_int16_t _averaging, u_int16_t _resetRate, u_int16_t _sensorLag, u_int16_t _midiCooldown)
+void ResSensor::setup(u_int16_t _padNum, u_int16_t _threshold, u_int16_t _averaging, u_int16_t _sensorLag, u_int16_t _midiCooldown)
 {
   // set up all necessary values
   padNum = _padNum;
   threshold = _threshold;
-  averaging = constrain(_averaging, 0, averageArraySize); // to not overflow array
-  resetRate = _resetRate;
-  sensorLag = (unsigned long)constrain(_sensorLag, 0, velocityArraySize); // to not overflow array;
+  averaging = constrain(_averaging, 0, averageArraySize);                 // to not overflow array. The statically defined sice of the array
+  sensorLag = (unsigned long)constrain(_sensorLag, 0, velocityArraySize); // to not overflow array. The statically defined sice of the array
   midiCooldown = _midiCooldown;
   midiCooldownTimer = 0;
 
