@@ -9,7 +9,7 @@
 /*
 
 ------TO DO------
-* Whats the difference between midiCooldown and noteMaxspeed?
+* Why is there no scaleing happening in ResSensor getVelocity function where the commments says // Scale to 7bit value ?
 * Incorporate buttons with temp change LED functionality
 * fix last two channels of ADC. Does this not work?
 * Reinclude TapeTecall and fix RTOS crashes when flashed
@@ -278,7 +278,8 @@ void sendCC()
 
 u_int16_t handleADC(byte padNum)
 {
-  // convert pad number to pin number on ADC
+  // this function returns the read value from the ADC. Used by callback functions.
+  //  convert pad number to pin number on ADC
   u_int16_t readPin = sensorPins[padNum];
   return (u_int16_t)adc.readADC(readPin);
 }

@@ -30,10 +30,11 @@ void ResSensor::setADCCallback(GeneralADCCallback _ADCCallback)
 
 void ResSensor::update()
 {
-  // get value and calculate average
+  // get current value
   averageArray[averageCounter % averaging] = ADCCallback(padNum);
   averageCounter++;
 
+  // calculate average of saved values
   int value = 0;
   for (int i = 0; i < averaging; i++)
   {
@@ -44,8 +45,7 @@ void ResSensor::update()
   // if average is over threshold and !state then start timer
   if ((averagedValue > threshold) && !state)
   {
-    // startTime = 0;
-    //  timer - add to noteOnTimer until state change
+    //  start timer - update noteOnTimer until state change
     if (!timerOn)
     {
       timerOn = true;
@@ -53,13 +53,13 @@ void ResSensor::update()
     }
     noteOnTimer = millis() - startTime;
 
-    // record velocity
+    // record velocity to get max value at note on
     velocityArray[velocityCounter % velocityArraySize] = averagedValue;
     velocityCounter++;
   }
   else if (timerOn)
   {
-    // timer needs to reset if averagedValue goes under threshold before sensorLag is reached
+    // if averagedValue goes under threshold before sensorLag is reached the timer needs to reset
     noteOnTimer = 0;
     timerOn = false;
     velocityCounter = 0;
