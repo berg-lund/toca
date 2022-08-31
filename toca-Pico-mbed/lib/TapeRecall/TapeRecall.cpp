@@ -2,7 +2,7 @@
 
 void TapeRecall::setup()
 {
-  tapeIndex = 0;
+  tapeIndex = 0; // current number of events in "tape"
   playing = false;
 }
 
@@ -18,7 +18,8 @@ void TapeRecall::addEvent(byte _midiEvent, u_int16_t _padNum, u_int16_t _timeSta
   masterMidiEvent[tapeIndex] = _midiEvent;
   masterPadNum[tapeIndex] = _padNum;
   masterTimeStamp[tapeIndex] = _timeStamp;
-  tapeIndex++;
+
+  tapeIndex = (tapeIndex + 1) % tapeLenght; // is this right?
 }
 
 void TapeRecall::recall(unsigned long _recallLenght)
@@ -34,9 +35,9 @@ void TapeRecall::recall(unsigned long _recallLenght)
   memset(channelTimeStamp, 0, sizeof(channelTimeStamp));
   size_t channelIndex = 0;
 
-  for (int i = 0; i < (int) tapeLenght; i++)
+  for (int i = 0; i < (int)tapeLenght; i++)
   {
-    // start at tapeIndex and wrap around zero of arrays
+    // start at tapeIndex, move backwards throught array and wrap around zero
     size_t currentIndex = 0 < (int)tapeIndex - i ? tapeIndex - i : tapeLenght + tapeIndex - i;
 
     // check if timeStamp at currentIndex is within recal
@@ -47,6 +48,9 @@ void TapeRecall::recall(unsigned long _recallLenght)
       channelPadNum[channelIndex] = masterPadNum[currentIndex];
       channelMidiEvent[channelIndex] = masterMidiEvent[currentIndex];
 
+      // save how many entries are added to channelArrays;
+      recallIndexLength = channelIndex;
+
       channelIndex++;
     }
     else
@@ -54,13 +58,11 @@ void TapeRecall::recall(unsigned long _recallLenght)
       break;
     }
   }
-  // save how many entries are added to channelArrays;
-  recallIndexLength = channelIndex;
 }
 
 void TapeRecall::playback(u_int16_t _clockValue, unsigned long _lastClock)
 {
-  // calculate where in loop the playback is
+  // calculate where in loop the playback is.
   unsigned long playheadPosition = (millis() - startOfRecal) % recallLenght;
 
   // if time for next event in line has passed
@@ -68,7 +70,7 @@ void TapeRecall::playback(u_int16_t _clockValue, unsigned long _lastClock)
   {
     // callback to note/presseue relevant for the event
     byte eventValue = channelMidiEvent[playbackIndex];
-    if(eventValue == 0)
+    if (eventValue == 0)
     {
       noteOff(channelPadNum[playbackIndex], 0, true);
     }
@@ -76,9 +78,9 @@ void TapeRecall::playback(u_int16_t _clockValue, unsigned long _lastClock)
     {
       noteOn(channelPadNum[playbackIndex], eventValue, true);
     }
-    else 
+    else
     {
-      pressure(channelPadNum[playbackIndex], eventValue - 128, true);
+      pressure(channelPadNum[playbackIndex], eventValue - 127, true);
     }
     // increment index and check next. Break at overflow to avoid locked in loop
     // send note off on all active notes

@@ -9,6 +9,13 @@
 /*
 
 ------TO DO------
+* ------TapeRecal-------
+  * memset might cause trouble
+  * While loops might cause trouble
+  * How do I now that the recall isn't longer then the info in the tape?
+  * The tapeRecall doesn't need to know about clock values. Only millis
+  * I got a bad feeling about the playback functions ability to loop over the overflow
+
 * Why is there no scaleing happening in ResSensor getVelocity function where the commments says // Scale to 7bit value ?
 * Incorporate buttons with temp change LED functionality
 * fix last two channels of ADC. Does this not work?
