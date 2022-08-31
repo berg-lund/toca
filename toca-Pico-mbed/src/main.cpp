@@ -9,6 +9,7 @@
 /*
 
 ------TO DO------
+* solid led light for pictures
 * fix last two channels of ADC
 * Reinclude TapeTecall and fix RTOS crashes when flashed
 * add start recal of set value on buttonpress
@@ -18,10 +19,11 @@
 * Create tape function
 * Look into defining callsbacks in main.h file
 * How should LEDHandler behave? send events with timers or with lifespann?
-* Add CV functionality
 * Stabilize clock
 * Check where to use byte and where int
 * Exclude libraries that aren't needed
+
+* Add CV functionality
 
 * change buttonHandler name to ButtonHandler
 
@@ -53,13 +55,32 @@ buttonHandler button1;
 const byte buttonPin = 0;
 const byte buttonDebounceDelay = 20;
 
+const u_int16_t buttonTopPin = 1;
+const u_int16_t buttonBottomPin = 0;
+
+const u_int16_t joyButtonPin = 3;
+const u_int16_t joyUpPin = 4;
+const u_int16_t joyRightPin = 5;
+const u_int16_t joyDownPin = 6;
+const u_int16_t joyLeftPin = 7;
+
+// ---- LED ----
+void LED();
+const u_int16_t LED1_RPin = 8;
+const u_int16_t LED1_GPin = 9;
+const u_int16_t LED1_BPin = 10;
+
+const u_int16_t LED2_RPin = 11;
+const u_int16_t LED2_GPin = 12;
+const u_int16_t LED2_BPin = 13;
+
 // ----- Tape -----
 // TapeRecall tape;
 
 // ---- Global Const ----
 const u_int16_t noteMaxspeed = 48;  // Wait in millis from note off to new note on
 const u_int16_t ccMaxspeed = 150;   // Frequency to send MIDICC messages on. Value in millis.
-const u_int16_t sensorLag = 25;      // From first sensorvalue in millis to get abetter velocity value. Max value set by array size in ResSensor
+const u_int16_t sensorLag = 25;     // From first sensorvalue in millis to get abetter velocity value. Max value set by array size in ResSensor
 const u_int16_t midiCooldown = 150; // Minimum time between last note ended and new one
 
 const byte nSensors = 8;
@@ -142,6 +163,15 @@ void setup()
   // Software SPI (specify all, use any available digital)
   // (sck, mosi, miso, cs);
   adc.begin(PIN_CLK, PIN_TX, PIN_RX, PIN_CS);
+
+  // temp LED setup
+  pinMode(LED1_RPin, OUTPUT);
+  pinMode(LED1_GPin, OUTPUT);
+  pinMode(LED1_BPin, OUTPUT);
+
+  pinMode(LED2_RPin, OUTPUT);
+  pinMode(LED2_GPin, OUTPUT);
+  pinMode(LED2_BPin, OUTPUT);
 }
 
 void loop()
@@ -152,7 +182,7 @@ void loop()
     s.update();
   }
   sendCC();
-  // LEDHandler.update();
+  LED(); // LEDHandler.update();
   // tape.playback(clockValue, lastClock);
 
   // Recive new midi
@@ -254,4 +284,15 @@ u_int16_t handleADC(byte padNum)
   // convert pad number to pin number on ADC
   u_int16_t readPin = sensorPins[padNum];
   return (u_int16_t)adc.readADC(readPin);
+}
+
+void LED()
+{
+  analogWrite(LED1_RPin, 85);
+  analogWrite(LED1_GPin, 25);
+  analogWrite(LED1_BPin, 40);
+
+  analogWrite(LED2_RPin, 40);
+  analogWrite(LED2_GPin, 25);
+  analogWrite(LED2_BPin, 40);
 }
