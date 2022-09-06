@@ -1,4 +1,5 @@
 #include "TapeRecall.h"
+#include <Adafruit_TinyUSB.h>
 
 void TapeRecall::setup()
 {
@@ -13,17 +14,21 @@ void TapeRecall::setHandleEvents(GeneralCallback _noteOn, GeneralCallback _noteO
   pressure = _pressure;
 }
 
-void TapeRecall::addEvent(byte _midiEvent, u_int16_t _padNum, u_int16_t _timeStamp)
+void TapeRecall::addEvent(byte _midiEvent, u_int16_t _padNum, u_int32_t _timeStamp)
 {
   masterMidiEvent[tapeIndex] = _midiEvent;
   masterPadNum[tapeIndex] = _padNum;
   masterTimeStamp[tapeIndex] = _timeStamp;
 
-  tapeIndex = (tapeIndex + 1) % tapeLenght; // is this right?
+  SerialTinyUSB.print("Event added: ");
+  SerialTinyUSB.print(tapeIndex);
+
+  tapeIndex = (tapeIndex + 1) % tapeLenght;
 }
 
 void TapeRecall::recall(unsigned long _recallLenght)
 {
+  SerialTinyUSB.println("Recall start");
   startOfRecal = millis();
   playing = true;
   playbackIndex = 0;
@@ -37,8 +42,17 @@ void TapeRecall::recall(unsigned long _recallLenght)
 
   for (int i = 0; i < (int)tapeLenght; i++)
   {
-    // start at tapeIndex, move backwards throught array and wrap around zero
-    size_t currentIndex = 0 < (int)tapeIndex - i ? tapeIndex - i : tapeLenght + tapeIndex - i;
+    // start at last used tapeIndex, move backwards throught array and wrap around zero
+    int lastUsedTapeIndex = (int)tapeIndex - 1;
+    size_t currentIndex = 0 < lastUsedTapeIndex - i ? lastUsedTapeIndex - i : tapeLenght - 1 + lastUsedTapeIndex - i;
+
+    SerialTinyUSB.print("currentIndex: ");
+    SerialTinyUSB.println(currentIndex);
+
+    SerialTinyUSB.print("Time evaluation: ");
+    SerialTinyUSB.print(masterTimeStamp[currentIndex]);
+    SerialTinyUSB.print(" > ");
+    SerialTinyUSB.println(startOfRecal - recallLenght);
 
     // check if timeStamp at currentIndex is within recal
     if (masterTimeStamp[currentIndex] > (startOfRecal - recallLenght))
@@ -58,6 +72,8 @@ void TapeRecall::recall(unsigned long _recallLenght)
       break;
     }
   }
+  SerialTinyUSB.print("recallIndexLength: ");
+  SerialTinyUSB.println(recallIndexLength);
 }
 
 void TapeRecall::playback(u_int16_t _clockValue, unsigned long _lastClock)

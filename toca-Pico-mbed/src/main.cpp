@@ -10,11 +10,13 @@
 
 ------TO DO------
 * ------TapeRecal-------
-  * memset might cause trouble
+  * Try the playbackfunction!
   * While loops might cause trouble
   * How do I now that the recall isn't longer then the info in the tape?
   * The tapeRecall doesn't need to know about clock values. Only millis
   * I got a bad feeling about the playback functions ability to loop over the overflow
+  * Should timestamp be u_16 or u_32?
+  * If recal is made witout any data in the recal lenght. recallIndex will stay the same as from the last successfull recal. Might not be a bug but a feature? Or might not do anything
 
 * Why is there no scaleing happening in ResSensor getVelocity function where the commments says // Scale to 7bit value ?
 * Incorporate buttons with temp change LED functionality
@@ -55,7 +57,7 @@ const u_int16_t PIN_RX = 16;  // miso/MCP DOut (pico pin 21)
 const u_int16_t PIN_CLK = 18; // clock/SCK     (pico pin 24)
 
 // ----- Buttons -----
-buttonHandler button1;
+buttonHandler buttonTop, buttonBottom;
 const byte buttonPin = 0;
 const byte buttonDebounceDelay = 20;
 
@@ -69,14 +71,14 @@ const u_int16_t joyDownPin = 6;
 const u_int16_t joyLeftPin = 7;
 
 // ---- LED ----
-void LED();
+void LED(byte ledN, byte r, byte g, byte b);
+const u_int16_t LED0_RPin = 11;
+const u_int16_t LED0_GPin = 12;
+const u_int16_t LED0_BPin = 13;
+
 const u_int16_t LED1_RPin = 8;
 const u_int16_t LED1_GPin = 9;
 const u_int16_t LED1_BPin = 10;
-
-const u_int16_t LED2_RPin = 11;
-const u_int16_t LED2_GPin = 12;
-const u_int16_t LED2_BPin = 13;
 
 // ----- Tape -----
 TapeRecall tape;
@@ -149,7 +151,8 @@ void setup()
   }
 
   // ----- Buttons -----
-  button1.setup(buttonPin, buttonDebounceDelay, false);
+  buttonTop.setup(buttonTopPin, buttonDebounceDelay, false);
+  buttonBottom.setup(buttonBottomPin, buttonDebounceDelay, false);
 
   // ----- Tape -----
   tape.setup();
@@ -168,24 +171,37 @@ void setup()
   adc.begin(PIN_CLK, PIN_TX, PIN_RX, PIN_CS);
 
   // temp LED setup
+  pinMode(LED0_RPin, OUTPUT);
+  pinMode(LED0_GPin, OUTPUT);
+  pinMode(LED0_BPin, OUTPUT);
+
   pinMode(LED1_RPin, OUTPUT);
   pinMode(LED1_GPin, OUTPUT);
   pinMode(LED1_BPin, OUTPUT);
-
-  pinMode(LED2_RPin, OUTPUT);
-  pinMode(LED2_GPin, OUTPUT);
-  pinMode(LED2_BPin, OUTPUT);
 }
 
 void loop()
 {
-  // buttonHandler.update();
+  // LEDHandler.update();
+  if (buttonTop.getToggle())
+    tape.recall(2000);
+
+  if (buttonTop.getState())
+    LED(0, 85, 0, 0);
+  else
+    LED(0, 85, 25, 40);
+
+  if (buttonBottom.getState())
+    LED(1, 85, 0, 0);
+  else
+    LED(1, 40, 25, 40);
+
   for (auto &s : sensors)
   {
     s.update();
   }
   sendCC();
-  LED(); // LEDHandler.update();
+
   // tape.playback(clockValue, lastClock);
 
   // Recive new midi
@@ -290,13 +306,19 @@ u_int16_t handleADC(byte padNum)
   return (u_int16_t)adc.readADC(readPin);
 }
 
-void LED()
+void LED(byte ledN, byte r, byte g, byte b)
 {
-  analogWrite(LED1_RPin, 85);
-  analogWrite(LED1_GPin, 25);
-  analogWrite(LED1_BPin, 40);
+  if (ledN == 0)
+  {
+    analogWrite(LED0_RPin, r);
+    analogWrite(LED0_GPin, g);
+    analogWrite(LED0_BPin, b);
+  }
 
-  analogWrite(LED2_RPin, 40);
-  analogWrite(LED2_GPin, 25);
-  analogWrite(LED2_BPin, 40);
+  if (ledN == 1)
+  {
+    analogWrite(LED1_RPin, r);
+    analogWrite(LED1_GPin, g);
+    analogWrite(LED1_BPin, b);
+  }
 }
