@@ -84,9 +84,12 @@ void TapeRecall::playback()
 {
   if (playing)
   {
-    bool looped = false;
     // calculate where in loop the playback is.
-    u_int32_t playheadPosition = (millis() - startOfRecal) % (recallLenght + 1);
+    u_int32_t playheadPosition = (millis() - startOfRecal) % recallLenght;
+
+    //keep track of when looping is about to occure. Works together with special event at start of array with timestamp == recallLenght - 1
+    if (playheadPosition < (recallLenght - 1))
+      looped = false;
 
     // max amount of events to read per call to playback
     int buffer = 3;
