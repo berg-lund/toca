@@ -1,8 +1,9 @@
 #include "TapeRecall.h"
 #include <Adafruit_TinyUSB.h>
 
-void TapeRecall::setup()
+void TapeRecall::setup(byte _nPads)
 {
+  nPads = _nPads;
   tapeIndex = 0; // current number of events in "tape"
   playing = false;
 }
@@ -31,13 +32,17 @@ void TapeRecall::recall(unsigned long _recallLenght)
   SerialTinyUSB.println("Recall start");
   startOfRecal = millis();
   playing = true;
-  playbackIndex = 0;
   // lenght in millis of recal
   recallLenght = _recallLenght;
 
   // clear channel arrays
   memset(channelMidiEvent, 0, sizeof(channelMidiEvent));
   memset(channelTimeStamp, 0, sizeof(channelTimeStamp));
+
+  // add total note off event at start of array. (array is in backwards order)
+  channelTimeStamp[0] = recallLenght - 1;
+  channelPadNum[0] = 255;
+  channelMidiEvent[0] = 0;
   size_t channelIndex = 0;
 
   for (int i = 0; i < (int)tapeLenght; i++)
@@ -57,54 +62,108 @@ void TapeRecall::recall(unsigned long _recallLenght)
     // check if timeStamp at currentIndex is within recal
     if (masterTimeStamp[currentIndex] > (startOfRecal - recallLenght))
     {
+      channelIndex++;
       // add timestamp to array with zero being the start of the recall loop
-      channelTimeStamp[channelIndex] = masterTimeStamp[currentIndex] - startOfRecal - recallLenght;
+      channelTimeStamp[channelIndex] = masterTimeStamp[currentIndex] - startOfRecal + recallLenght;
       channelPadNum[channelIndex] = masterPadNum[currentIndex];
       channelMidiEvent[channelIndex] = masterMidiEvent[currentIndex];
-
-      // save how many entries are added to channelArrays;
-      recallIndexLength = channelIndex;
-
-      channelIndex++;
     }
     else
     {
       break;
     }
   }
+  // save how many entries that are added to channelArrays;
+  recallIndexLength = channelIndex;
+  playbackIndex = recallIndexLength;
   SerialTinyUSB.print("recallIndexLength: ");
   SerialTinyUSB.println(recallIndexLength);
 }
 
-void TapeRecall::playback(u_int16_t _clockValue, unsigned long _lastClock)
+void TapeRecall::playback()
 {
-  // calculate where in loop the playback is.
-  unsigned long playheadPosition = (millis() - startOfRecal) % recallLenght;
-
-  // if time for next event in line has passed
-  while (channelTimeStamp[playbackIndex] < playheadPosition)
+  if (playing)
   {
-    // callback to note/presseue relevant for the event
-    byte eventValue = channelMidiEvent[playbackIndex];
-    if (eventValue == 0)
+    bool looped = false;
+    // calculate where in loop the playback is.
+    u_int32_t playheadPosition = (millis() - startOfRecal) % (recallLenght + 1);
+
+    // max amount of events to read per call to playback
+    int buffer = 3;
+    for (int i = 0; i < buffer; i++)
     {
-      noteOff(channelPadNum[playbackIndex], 0, true);
-    }
-    else if (eventValue < 128)
-    {
-      noteOn(channelPadNum[playbackIndex], eventValue, true);
-    }
-    else
-    {
-      pressure(channelPadNum[playbackIndex], eventValue - 127, true);
-    }
-    // increment index and check next. Break at overflow to avoid locked in loop
-    // send note off on all active notes
-    playbackIndex++;
-    if (playbackIndex > recallIndexLength)
-    {
-      playbackIndex = 0;
-      break;
+
+      // if time for next event in line has passed
+      if ((channelTimeStamp[playbackIndex] <= playheadPosition) && !looped)
+      {
+        SerialTinyUSB.print("playbackIndex: ");
+        SerialTinyUSB.print(playbackIndex);
+        SerialTinyUSB.print(" i: ");
+        SerialTinyUSB.println(i);
+
+        SerialTinyUSB.print("channelTimeStamp: ");
+        SerialTinyUSB.print(channelTimeStamp[playbackIndex]);
+        SerialTinyUSB.print(" <= playheadPosition: ");
+        SerialTinyUSB.println(playheadPosition);
+        // callback to note/presseue relevant for the event
+        byte eventValue = channelMidiEvent[playbackIndex];
+
+        //----if loop noteOff trigger----
+        if (channelPadNum[playbackIndex] == 255)
+        {
+          looped = true;
+          SerialTinyUSB.println("Loop noteOff trigger");
+          // send note off to all currently playing notes
+          for (int i = 0; i < nPads; i++)
+          {
+            if (bitRead(padsPlaying, i))
+            {
+              // noteOff(i, 0, true); ----------------------------------------
+              SerialTinyUSB.print("loop noteOff: ");
+              SerialTinyUSB.println(i);
+            }
+          }
+          // clear for next loop
+          padsPlaying = 0;
+        }
+        //----if noteOff----
+        else if (eventValue == 0)
+        {
+          // noteOff(channelPadNum[playbackIndex], 0, true);---------------------------
+
+          // Keep track of playing notes
+          bitClear(padsPlaying, channelPadNum[playbackIndex]);
+          SerialTinyUSB.println("noteOff");
+        }
+        //----if noteOn----
+        else if (eventValue < 128)
+        {
+          // noteOn(channelPadNum[playbackIndex], eventValue, true);---------------------
+
+          // Keep track of playing notes
+          bitSet(padsPlaying, channelPadNum[playbackIndex]);
+          SerialTinyUSB.println("noteOn");
+        }
+        //----if pressure----
+        else
+        {
+          // pressure(channelPadNum[playbackIndex], eventValue - 127, true);---------------
+          SerialTinyUSB.println("pressure");
+        }
+
+        // itterate backwards trough arrays
+        playbackIndex = playbackIndex > 0 ? (playbackIndex - 1) : recallIndexLength;
+      }
+      else
+      {
+        break;
+      }
     }
   }
+}
+
+void TapeRecall::stopPlayback()
+{
+  SerialTinyUSB.println("Playback stopped");
+  playing = false;
 }

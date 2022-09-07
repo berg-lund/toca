@@ -10,12 +10,10 @@
 
 ------TO DO------
 * ------TapeRecal-------
-  * Try the playbackfunction!
-  * While loops might cause trouble
+  * the callback functions are messing up the playback. Might be problem with it calling itself?
+
   * How do I now that the recall isn't longer then the info in the tape?
   * The tapeRecall doesn't need to know about clock values. Only millis
-  * I got a bad feeling about the playback functions ability to loop over the overflow
-  * Should timestamp be u_16 or u_32?
   * If recal is made witout any data in the recal lenght. recallIndex will stay the same as from the last successfull recal. Might not be a bug but a feature? Or might not do anything
 
 * Why is there no scaleing happening in ResSensor getVelocity function where the commments says // Scale to 7bit value ?
@@ -155,7 +153,7 @@ void setup()
   buttonBottom.setup(buttonBottomPin, buttonDebounceDelay, false);
 
   // ----- Tape -----
-  tape.setup();
+  tape.setup(nSensors);
 
   // wait until device mounted
   while (!TinyUSBDevice.mounted())
@@ -191,6 +189,9 @@ void loop()
   else
     LED(0, 85, 25, 40);
 
+  if (buttonBottom.getToggle())
+    tape.stopPlayback();
+
   if (buttonBottom.getState())
     LED(1, 85, 0, 0);
   else
@@ -202,7 +203,7 @@ void loop()
   }
   sendCC();
 
-  // tape.playback(clockValue, lastClock);
+  tape.playback();
 
   // Recive new midi
   MIDI.read();
@@ -276,7 +277,7 @@ void handlePressure(byte padNum, u_int16_t pressure, bool playback)
     tape.addEvent(127 + p, padNum, millis());
   }
 
-  SerialTinyUSB.print("Pressure p: ");
+  SerialTinyUSB.print(" Pressure p: ");
   SerialTinyUSB.print(p);
   SerialTinyUSB.print(" \t Pad: ");
   SerialTinyUSB.println(padNum);
