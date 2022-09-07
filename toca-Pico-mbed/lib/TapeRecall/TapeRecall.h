@@ -14,6 +14,8 @@ public:
   void stopPlayback();
 
 private:
+  void stopNotes(byte _padsPlaying);
+
   bool playing, looped;
   unsigned long recallLenght, startOfRecal;
   u_int16_t recallIndexLength;

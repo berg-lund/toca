@@ -9,18 +9,12 @@
 /*
 
 ------TO DO------
-* ------TapeRecal-------
-  * the callback functions are messing up the playback. Might be problem with it calling itself?
-
-  * How do I now that the recall isn't longer then the info in the tape?
-  * The tapeRecall doesn't need to know about clock values. Only millis
-  * If recal is made witout any data in the recal lenght. recallIndex will stay the same as from the last successfull recal. Might not be a bug but a feature? Or might not do anything
-
+* Why does it just hang some times??? 
+* First event after startup is missed in playback in TapeRecall
+* Why is the velocisty lower on playback?
 * Why is there no scaleing happening in ResSensor getVelocity function where the commments says // Scale to 7bit value ?
-* Incorporate buttons with temp change LED functionality
-* Reinclude TapeTecall and fix RTOS crashes when flashed
-* add start recal of set value on buttonpress
 
+* If recal is made witout any data in the recal lenght. recallIndex will stay the same as from the last successfull recal. Might not be a bug but a feature? Or might not do anything
 * Is setting up the pins with input pulldown (in ResSensor.setup()) affecting the values read by them?
 * Create tape function
 * Look into defining callsbacks in main.h file
@@ -154,6 +148,7 @@ void setup()
 
   // ----- Tape -----
   tape.setup(nSensors);
+  tape.setHandleEvents(handleNoteOn, handleNoteOff, handlePressure);
 
   // wait until device mounted
   while (!TinyUSBDevice.mounted())
@@ -242,7 +237,7 @@ void handleNoteOn(byte padNum, u_int16_t velocity, bool playback)
   // if not playing back add to tape
   if (!playback)
   {
-    tape.addEvent(v, padNum, millis());
+    tape.addEvent(velocity, padNum, millis());
   }
   SerialTinyUSB.print(" Note on. Pad = ");
   SerialTinyUSB.print(padNum);
@@ -274,7 +269,7 @@ void handlePressure(byte padNum, u_int16_t pressure, bool playback)
   // if not playing back add to tape
   if (!playback)
   {
-    tape.addEvent(127 + p, padNum, millis());
+    tape.addEvent(127 + pressure, padNum, millis());
   }
 
   SerialTinyUSB.print(" Pressure p: ");
@@ -286,7 +281,7 @@ void handlePressure(byte padNum, u_int16_t pressure, bool playback)
 
 void sendCC()
 {
-  static unsigned long ccTimer = millis();
+  static u_int32_t ccTimer = millis();
 
   if (millis() > (ccTimer + ccMaxspeed))
   {
