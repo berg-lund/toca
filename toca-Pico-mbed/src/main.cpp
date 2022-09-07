@@ -9,9 +9,9 @@
 /*
 
 ------TO DO------
-* Why does it just hang some times??? 
+* Why does it just hang some times???
 * First event after startup is missed in playback in TapeRecall
-* Why is the velocisty lower on playback?
+* Why is the velocisty lower on playback? Because the Noteon and note off uses sensor values and I've coded Taperecall to use midi Velocity values. Better to convert Taperecall to use Sensor values if I ever implement CVout
 * Why is there no scaleing happening in ResSensor getVelocity function where the commments says // Scale to 7bit value ?
 
 * If recal is made witout any data in the recal lenght. recallIndex will stay the same as from the last successfull recal. Might not be a bug but a feature? Or might not do anything
@@ -229,16 +229,18 @@ void handleClock()
 
 void handleNoteOn(byte padNum, u_int16_t velocity, bool playback)
 {
-  u_int16_t v = (velocity / 8) * rangeTune;
-  v = constrain(v, 0, 127);
-  MIDI.sendNoteOn(noteNum[padNum], v, channelNum[padNum]);
-  //## CV gate on
-  //## Indicate with led?
   // if not playing back add to tape
   if (!playback)
   {
     tape.addEvent(velocity, padNum, millis());
   }
+
+  u_int16_t v = (velocity / 8) * rangeTune;
+  v = constrain(v, 0, 127);
+  MIDI.sendNoteOn(noteNum[padNum], v, channelNum[padNum]);
+  //## CV gate on
+  //## Indicate with led?
+
   SerialTinyUSB.print(" Note on. Pad = ");
   SerialTinyUSB.print(padNum);
   SerialTinyUSB.print("\t Sensor value = ");
@@ -249,28 +251,29 @@ void handleNoteOn(byte padNum, u_int16_t velocity, bool playback)
 
 void handleNoteOff(byte padNum, u_int16_t velocity, bool playback)
 {
-  MIDI.sendNoteOn(noteNum[padNum], 0, channelNum[padNum]);
-  //## CV gate of
   // if not playing back add to tape
   if (!playback)
   {
     tape.addEvent(0, padNum, millis());
   }
+  MIDI.sendNoteOn(noteNum[padNum], 0, channelNum[padNum]);
+  //## CV gate of
+
   SerialTinyUSB.print(" Note off. Pad = ");
   SerialTinyUSB.println(padNum);
 }
 
 void handlePressure(byte padNum, u_int16_t pressure, bool playback)
 {
-  u_int16_t p = (pressure / 8) * rangeTune;
-  p = constrain(p, 0, 127);
-  MIDI.sendControlChange(ccChannels[padNum], p, channelNum[padNum]);
-
   // if not playing back add to tape
   if (!playback)
   {
     tape.addEvent(127 + pressure, padNum, millis());
   }
+
+  u_int16_t p = (pressure / 8) * rangeTune;
+  p = constrain(p, 0, 127);
+  MIDI.sendControlChange(ccChannels[padNum], p, channelNum[padNum]);
 
   SerialTinyUSB.print(" Pressure p: ");
   SerialTinyUSB.print(p);
