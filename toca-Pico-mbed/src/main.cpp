@@ -19,6 +19,8 @@
 
 * LEDHandler
   * Can nLeds, nPins and nColors be defined in main.h?
+  * Add LED events on pad
+  * Add Led event on clock recive
 
 * First event after startup is missed in playback in TapeRecall
 * Clock
