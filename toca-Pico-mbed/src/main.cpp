@@ -7,20 +7,31 @@
 #include "TapeRecall.h"
 
 /*
-
 ------TO DO------
-* Why does it just hang some times???
+* Why does it just hang some times??? Probably some array that tries to get read or written out of bounds
+* Send CC more freqently
+
+* Make functions for buttons and joystick
+  * make recall not start if recall time == 0
+  * Can updateJoy be done inside buttons instead of its own function?
+  * can getJoy be just joyValue * getClock?
+* How should LEDHandler behave?
+  * send events with priority and optional lifespann?
+  * send data through all throughout loop and then call update to it where it cahnges state of pins.
+
 * First event after startup is missed in playback in TapeRecall
+* Clock
+  * Stabilize clock
+  * incorporate Clock value in getJoy();
+  * add functionality to get default value when clock is not recived. Or last recived tempo?
+  * signal through LED when clock is recived
 
 * If recal is made witout any data in the recal lenght. recallIndex will stay the same as from the last successfull recal. Might not be a bug but a feature? Or might not do anything
 * Is setting up the pins with input pulldown (in ResSensor.setup()) affecting the values read by them?
-* Create tape function
 * Look into defining callsbacks in main.h file
-* How should LEDHandler behave? send events with timers or with lifespann?
-* Stabilize clock
-* Check where to use byte and where int
-* Exclude libraries that aren't needed
+* Clean upp commented serial prints in TapeRecall
 
+* Exclude libraries that aren't needed
 * Add CV functionality
 
 # Serial communication is buffered and not realtime. For example, note off might not be showned until more data is sent. Debugg through MIDIOx
@@ -47,18 +58,22 @@ const u_int16_t PIN_RX = 16;  // miso/MCP DOut (pico pin 21)
 const u_int16_t PIN_CLK = 18; // clock/SCK     (pico pin 24)
 
 // ----- Buttons -----
-buttonHandler buttonTop, buttonBottom;
-const byte buttonPin = 0;
+void buttons();
+buttonHandler buttonTop, buttonBottom, joyButton, joyUp, joyRight, joyDown, joyLeft;
 const byte buttonDebounceDelay = 20;
 
 const u_int16_t buttonTopPin = 1;
 const u_int16_t buttonBottomPin = 0;
 
-const u_int16_t joyButtonPin = 3;
-const u_int16_t joyUpPin = 4;
-const u_int16_t joyRightPin = 5;
-const u_int16_t joyDownPin = 6;
-const u_int16_t joyLeftPin = 7;
+void updateJoy();
+u_int32_t getJoy();
+byte joyValue;
+
+const u_int16_t joyButtonPin = 3; // 3
+const u_int16_t joyRightPin = 6;  // 4
+const u_int16_t joyUpPin = 5;     // 5
+const u_int16_t joyDownPin = 2;   // 6
+const u_int16_t joyLeftPin = 4;   // 7
 
 // ---- LED ----
 void LED(byte ledN, byte r, byte g, byte b);
@@ -141,8 +156,13 @@ void setup()
   }
 
   // ----- Buttons -----
-  buttonTop.setup(buttonTopPin, buttonDebounceDelay, false);
-  buttonBottom.setup(buttonBottomPin, buttonDebounceDelay, false);
+  buttonTop.setup(buttonTopPin, buttonDebounceDelay);
+  buttonBottom.setup(buttonBottomPin, buttonDebounceDelay);
+  joyButton.setup(joyButtonPin, buttonDebounceDelay);
+  joyDown.setup(joyDownPin, buttonDebounceDelay);
+  joyLeft.setup(joyLeftPin, buttonDebounceDelay);
+  joyUp.setup(joyUpPin, buttonDebounceDelay);
+  joyRight.setup(joyRightPin, buttonDebounceDelay);
 
   // ----- Tape -----
   tape.setup(nSensors);
@@ -173,22 +193,7 @@ void setup()
 
 void loop()
 {
-  // LEDHandler.update();
-  if (buttonTop.getToggle())
-    tape.recall(2000);
-
-  if (buttonTop.getState())
-    LED(0, 85, 0, 0);
-  else
-    LED(0, 85, 25, 40);
-
-  if (buttonBottom.getToggle())
-    tape.stopPlayback();
-
-  if (buttonBottom.getState())
-    LED(1, 85, 0, 0);
-  else
-    LED(1, 40, 25, 40);
+  buttons();
 
   for (auto &s : sensors)
   {
@@ -320,4 +325,71 @@ void LED(byte ledN, byte r, byte g, byte b)
     analogWrite(LED1_GPin, g);
     analogWrite(LED1_BPin, b);
   }
+}
+
+void buttons()
+{
+  // when button is pressed is where the loop ends.
+  if (buttonTop.getToggle())
+  {
+    tape.startOfRecall();
+
+    // clear joystick value before read
+    joyValue = 0;
+  }
+  // playback of the loop won't begin until button is released.
+  if (buttonTop.getRelease())
+  {
+    tape.recall(getJoy()); // get joysitck value
+  }
+
+  if (buttonTop.getState())
+    LED(0, 85, 0, 0);
+  else
+    LED(0, 85, 25, 40);
+
+  if (buttonBottom.getToggle())
+    tape.stopPlayback();
+
+  if (buttonBottom.getState())
+    LED(1, 85, 0, 0);
+  else
+    LED(1, 40, 25, 40);
+
+  updateJoy();
+}
+
+void updateJoy()
+{
+  // read all buttons and set bits
+  if (joyButton.getToggle())
+  {
+    bitSet(joyValue, 0);
+  }
+
+  if (joyRight.getToggle())
+  {
+    bitSet(joyValue, 1);
+  }
+
+  if (joyDown.getToggle())
+  {
+    bitSet(joyValue, 2);
+  }
+
+  if (joyLeft.getToggle())
+  {
+    bitSet(joyValue, 3);
+  }
+
+  if (joyUp.getToggle())
+  {
+    bitSet(joyValue, 4);
+  }
+}
+
+u_int32_t getJoy()
+{
+  // value of joy times clock
+  return joyValue * 500;
 }
