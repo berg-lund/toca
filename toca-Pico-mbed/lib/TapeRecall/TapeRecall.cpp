@@ -34,45 +34,49 @@ void TapeRecall::recall(u_int32_t _recallLenght)
 {
   SerialTinyUSB.print("Recall start. Lenght: ");
   SerialTinyUSB.println(_recallLenght);
-  playing = true;
-  // lenght in millis of recal
-  recallLenght = _recallLenght;
 
-  // clear channel arrays
-  memset(channelMidiEvent, 0, sizeof(channelMidiEvent));
-  memset(channelTimeStamp, 0, sizeof(channelTimeStamp));
-
-  // add total note off event at start of array. (array is in backwards order)
-  channelTimeStamp[0] = recallLenght - 1;
-  channelPadNum[0] = 255;
-  channelMidiEvent[0] = 0;
-  size_t channelIndex = 0;
-
-  for (int i = 0; i < (int)tapeLenght; i++)
+  if (_recallLenght > 0)
   {
-    // start at last used tapeIndex, move backwards throught array and wrap around zero
-    int lastUsedTapeIndex = (int)tapeIndex - 1;
-    size_t currentIndex = 0 < lastUsedTapeIndex - i ? lastUsedTapeIndex - i : tapeLenght - 1 + lastUsedTapeIndex - i;
+    playing = true;
+    // lenght in millis of recal
+    recallLenght = _recallLenght;
 
-    // check if timeStamp at currentIndex is within recal
-    if (masterTimeStamp[currentIndex] > (startOfRecal - recallLenght))
+    // clear channel arrays
+    memset(channelMidiEvent, 0, sizeof(channelMidiEvent));
+    memset(channelTimeStamp, 0, sizeof(channelTimeStamp));
+
+    // add total note off event at start of array. (array is in backwards order)
+    channelTimeStamp[0] = recallLenght - 1;
+    channelPadNum[0] = 255;
+    channelMidiEvent[0] = 0;
+    size_t channelIndex = 0;
+
+    for (int i = 0; i < (int)tapeLenght; i++)
     {
-      channelIndex++;
-      // add timestamp to array with zero being the start of the recall loop
-      channelTimeStamp[channelIndex] = masterTimeStamp[currentIndex] - startOfRecal + recallLenght;
-      channelPadNum[channelIndex] = masterPadNum[currentIndex];
-      channelMidiEvent[channelIndex] = masterMidiEvent[currentIndex];
+      // start at last used tapeIndex, move backwards throught array and wrap around zero
+      int lastUsedTapeIndex = (int)tapeIndex - 1;
+      size_t currentIndex = 0 < lastUsedTapeIndex - i ? lastUsedTapeIndex - i : tapeLenght - 1 + lastUsedTapeIndex - i;
+
+      // check if timeStamp at currentIndex is within recal
+      if (masterTimeStamp[currentIndex] > (startOfRecal - recallLenght))
+      {
+        channelIndex++;
+        // add timestamp to array with zero being the start of the recall loop
+        channelTimeStamp[channelIndex] = masterTimeStamp[currentIndex] - startOfRecal + recallLenght;
+        channelPadNum[channelIndex] = masterPadNum[currentIndex];
+        channelMidiEvent[channelIndex] = masterMidiEvent[currentIndex];
+      }
+      else
+      {
+        break;
+      }
     }
-    else
-    {
-      break;
-    }
+    // save how many entries that are added to channelArrays;
+    recallIndexLength = channelIndex;
+    playbackIndex = recallIndexLength;
+    SerialTinyUSB.print("recallIndexLength: ");
+    SerialTinyUSB.println(recallIndexLength);
   }
-  // save how many entries that are added to channelArrays;
-  recallIndexLength = channelIndex;
-  playbackIndex = recallIndexLength;
-  SerialTinyUSB.print("recallIndexLength: ");
-  SerialTinyUSB.println(recallIndexLength);
 }
 
 void TapeRecall::playback()

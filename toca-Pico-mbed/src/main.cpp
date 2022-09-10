@@ -13,21 +13,20 @@
 * Sometimes the loop gets stuck. I don't know why.
 
 * Make functions for buttons and joystick
-  * make recall not start if recall time == 0
   * Can updateJoy be done inside buttons instead of its own function?
   * can getJoy be just joyValue * getClock?
 
 * LEDHandler
+  * Prio doesn't seem to work.
   * Can nLeds, nPins and nColors be defined in main.h?
   * Add LED events on pad
-  * Add Led event on clock recive
 
 * First event after startup is missed in playback in TapeRecall
 * Clock
-  * Stabilize clock
-  * incorporate Clock value in getJoy();
-  * add functionality to get default value when clock is not recived. Or last recived tempo?
-  * signal through LED when clock is recived
+  * Averageing isn't doing what I think. Bigger array doesn't help. even a 1 millisecond error per quarternote gets in to 16th note territory prety quickly.
+  * Might be because of all the serial data slowing the pico down
+  * can clockArray be byte? 255 * 24 is 6 second per quarternote? But wouldn't work well with first new value. Needs to be capped instead of overflowed
+  *
 
 * If recal is made witout any data in the recal lenght. recallIndex will stay the same as from the last successfull recal. Might not be a bug but a feature? Or might not do anything
 * Is setting up the pins with input pulldown (in ResSensor.setup()) affecting the values read by them?
@@ -36,6 +35,7 @@
 
 * Exclude libraries that aren't needed
 * Add CV functionality
+* Add tap tempo functionality??
 
 # Serial communication is buffered and not realtime. For example, note off might not be showned until more data is sent. Debugg through MIDIOx
 # Serial communication doesn't initiate until a while. between 100 and 4000 loops. Doesn't need a fix just remember.
@@ -72,11 +72,11 @@ void updateJoy();
 u_int32_t getJoy();
 byte joyValue;
 
-const u_int16_t joyButtonPin = 3; // 3
-const u_int16_t joyRightPin = 6;  // 4
-const u_int16_t joyUpPin = 5;     // 5
-const u_int16_t joyDownPin = 2;   // 6
-const u_int16_t joyLeftPin = 4;   // 7
+const u_int16_t joyButtonPin = 3;
+const u_int16_t joyRightPin = 6;
+const u_int16_t joyUpPin = 5;
+const u_int16_t joyDownPin = 2;
+const u_int16_t joyLeftPin = 4;
 
 // ---- LED ----
 // Number of leds, pins and colors hardcoded in ledHandler.h
@@ -114,17 +114,22 @@ const float rangeTune = 1.0;
 // ---- Global Variables ----
 ResSensor sensors[nSensors];
 u_int16_t pressureArray[nSensors];
-unsigned long lastClock = 0;
-const byte clockArrayLength = 24; // 24 ticks per quartenote in MIDI standard
+
+//---- Clock ----
+u_int32_t lastClock = 0;
+const byte clockAveraging = 8;
+const u_int16_t clockArrayLength = 24 * clockAveraging; // 24 ticks per quartenote in MIDI standard
 u_int16_t clockArray[clockArrayLength];
-u_int16_t clockValue = 0;
+u_int16_t clockValue = 500; // startup value of clock before midiClock is recived
 byte clockIndex = 0;
+bool midiStart = false;
 
 //---- Functions ----
 void sendCC();
 
 //---- Define Callbacks ----
 void handleClock();
+void handleStart();
 void handleNoteOn(byte padNum, u_int16_t velocity, bool playback = false);
 void handleNoteOff(byte padNum, u_int16_t velocity, bool playback = false);
 void handlePressure(byte padNum, u_int16_t pressure, bool playback = false);
@@ -151,8 +156,9 @@ void setup()
   // This will also call usb_midi's begin()
   MIDI.begin(MIDI_CHANNEL_OMNI);
 
-  // ---- Callbacks ----
+  // ---- MIDI Callbacks ----
   MIDI.setHandleClock(handleClock);
+  MIDI.setHandleStart(handleStart);
 
   // ---- Setup sensors ----
   for (int i = 0; i < nSensors; i++)
@@ -183,7 +189,6 @@ void setup()
 
   digitalWrite(LED_BUILTIN, HIGH); // setup is complete
   SerialTinyUSB.begin(115200);
-  SerialTinyUSB.println("Setup complete");
 
   //----- SPI -----
   // Software SPI (specify all, use any available digital)
@@ -211,27 +216,53 @@ void loop()
   ledHandler.draw();
 }
 
+// gets called on recived midi Clock
 void handleClock()
 {
-  unsigned long time = millis();
+  u_int32_t time = millis();
   clockArray[clockIndex] = millis() - lastClock;
 
+  // after first two new clocks after midi start message clear array and set value from these two
+  if (midiStart && clockIndex == 1)
+  {
+    for (auto &c : clockArray)
+    {
+      c = clockArray[1];
+    }
+    midiStart = false;
+  }
+
+  // calculate averaged quarternote value
   clockValue = 0;
   for (auto &c : clockArray)
   {
     clockValue += c;
   }
+  clockValue /= clockAveraging;
 
-  if (clockIndex == 0)
+  // update led once per quarternote
+  if ((clockIndex % 24) == 0)
   {
-    SerialTinyUSB.print("Recived Clock: ");
+    ledHandler.setLed(1, 4, 1, clockValue / 2);
+    SerialTinyUSB.print("Clock recived: ");
+    SerialTinyUSB.print(clockArray[clockIndex]);
+    SerialTinyUSB.print(" Averaged: ");
     SerialTinyUSB.print(clockValue);
-    SerialTinyUSB.print("\t index: ");
+    SerialTinyUSB.print(" index: ");
     SerialTinyUSB.println(clockIndex);
   }
 
   clockIndex = (clockIndex + 1) % clockArrayLength;
   lastClock = time;
+}
+
+// gets called on recived MIDI start message
+void handleStart()
+{
+  SerialTinyUSB.println("Start recived");
+  midiStart = true;
+  // set downbeat of clock
+  clockIndex = 0;
 }
 
 void handleNoteOn(byte padNum, u_int16_t velocity, bool playback)
@@ -250,12 +281,12 @@ void handleNoteOn(byte padNum, u_int16_t velocity, bool playback)
   //## CV gate on
   //## Indicate with led?
 
-  SerialTinyUSB.print(" Note on. Pad = ");
-  SerialTinyUSB.print(padNum);
-  SerialTinyUSB.print("\t Sensor value = ");
-  SerialTinyUSB.print(velocity);
-  SerialTinyUSB.print("\t v = ");
-  SerialTinyUSB.println(v);
+  // SerialTinyUSB.print(" Note on. Pad = ");
+  // SerialTinyUSB.print(padNum);
+  // SerialTinyUSB.print("\t Sensor value = ");
+  // SerialTinyUSB.print(velocity);
+  // SerialTinyUSB.print("\t v = ");
+  // SerialTinyUSB.println(v);
 }
 
 void handleNoteOff(byte padNum, u_int16_t velocity, bool playback)
@@ -268,8 +299,8 @@ void handleNoteOff(byte padNum, u_int16_t velocity, bool playback)
   MIDI.sendNoteOn(noteNum[padNum], 0, channelNum[padNum]);
   //## CV gate of
 
-  SerialTinyUSB.print(" Note off. Pad = ");
-  SerialTinyUSB.println(padNum);
+  // SerialTinyUSB.print(" Note off. Pad = ");
+  // SerialTinyUSB.println(padNum);
 }
 
 void handlePressure(byte padNum, u_int16_t pressure, bool playback)
@@ -284,10 +315,10 @@ void handlePressure(byte padNum, u_int16_t pressure, bool playback)
   p = constrain(p, 0, 127);
   MIDI.sendControlChange(ccChannels[padNum], p, channelNum[padNum]);
 
-  SerialTinyUSB.print(" Pressure p: ");
-  SerialTinyUSB.print(p);
-  SerialTinyUSB.print(" \t Pad: ");
-  SerialTinyUSB.println(padNum);
+  // SerialTinyUSB.print(" Pressure p: ");
+  // SerialTinyUSB.print(p);
+  // SerialTinyUSB.print(" \t Pad: ");
+  // SerialTinyUSB.println(padNum);
   //## CV pressure
 }
 
@@ -374,5 +405,5 @@ void updateJoy()
 u_int32_t getJoy()
 {
   // value of joy times clock
-  return joyValue * 500;
+  return joyValue * clockValue;
 }
