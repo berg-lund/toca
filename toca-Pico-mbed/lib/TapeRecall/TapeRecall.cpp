@@ -15,19 +15,16 @@ void TapeRecall::setHandleEvents(GeneralCallback _noteOn, GeneralCallback _noteO
   pressure = _pressure;
 }
 
-void TapeRecall::addEvent(byte _midiEvent, u_int16_t _padNum, u_int32_t _timeStamp)
+void TapeRecall::addEvent(u_int16_t _midiEvent, byte _padNum, u_int32_t _timeStamp)
 {
   masterMidiEvent[tapeIndex] = _midiEvent;
   masterPadNum[tapeIndex] = _padNum;
   masterTimeStamp[tapeIndex] = _timeStamp;
 
-  SerialTinyUSB.print("Event added: ");
-  SerialTinyUSB.print(tapeIndex);
-
   tapeIndex = (tapeIndex + 1) % tapeLenght;
 }
 
-void TapeRecall::recall(unsigned long _recallLenght)
+void TapeRecall::recall(u_int32_t _recallLenght)
 {
   SerialTinyUSB.println("Recall start");
   startOfRecal = millis();
@@ -101,7 +98,7 @@ void TapeRecall::playback()
         // SerialTinyUSB.print(" <= playheadPosition: ");
         // SerialTinyUSB.println(playheadPosition);
         // callback to note/presseue relevant for the event
-        byte eventValue = channelMidiEvent[playbackIndex];
+        u_int16_t eventValue = channelMidiEvent[playbackIndex];
 
         //----if loop noteOff trigger----
         if (channelPadNum[playbackIndex] == 255)
@@ -121,7 +118,7 @@ void TapeRecall::playback()
           bitClear(padsPlaying, channelPadNum[playbackIndex]);
         }
         //----if noteOn----
-        else if (eventValue < 128)
+        else if (eventValue < 1024)
         {
           noteOn(channelPadNum[playbackIndex], eventValue, true);
 
@@ -131,7 +128,7 @@ void TapeRecall::playback()
         //----if pressure----
         else
         {
-          pressure(channelPadNum[playbackIndex], eventValue - 127, true);
+          pressure(channelPadNum[playbackIndex], eventValue - 1023, true);
         }
 
         // itterate backwards trough arrays
