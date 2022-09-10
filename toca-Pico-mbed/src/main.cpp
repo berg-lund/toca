@@ -4,20 +4,21 @@
 #include <MIDI.h>
 #include "ResSensor.h"
 #include "buttonHandler.h"
+#include "LedHandler.h"
 #include "TapeRecall.h"
 
 /*
 ------TO DO------
 * Why does it just hang some times??? Probably some array that tries to get read or written out of bounds
-* Send CC more freqently
+* Sometimes the loop gets stuck. I don't know why.
 
 * Make functions for buttons and joystick
   * make recall not start if recall time == 0
   * Can updateJoy be done inside buttons instead of its own function?
   * can getJoy be just joyValue * getClock?
-* How should LEDHandler behave?
-  * send events with priority and optional lifespann?
-  * send data through all throughout loop and then call update to it where it cahnges state of pins.
+
+* LEDHandler
+  * Can nLeds, nPins and nColors be defined in main.h?
 
 * First event after startup is missed in playback in TapeRecall
 * Clock
@@ -76,20 +77,26 @@ const u_int16_t joyDownPin = 2;   // 6
 const u_int16_t joyLeftPin = 4;   // 7
 
 // ---- LED ----
-void LED(byte ledN, byte r, byte g, byte b);
-const u_int16_t LED0_RPin = 11;
-const u_int16_t LED0_GPin = 12;
-const u_int16_t LED0_BPin = 13;
+// Number of leds, pins and colors hardcoded in ledHandler.h
 
-const u_int16_t LED1_RPin = 8;
-const u_int16_t LED1_GPin = 9;
-const u_int16_t LED1_BPin = 10;
+LedHandler ledHandler;
+byte ledPins[2][3]{
+    {11, 12, 13},
+    {8, 9, 10}};
+
+byte colors[5][3]{
+    {85, 15, 40},  // default
+    {85, 5, 14},   // button press
+    {100, 60, 80}, // sensor press
+    {85, 15, 80},  // playback on
+    {85, 35, 14}   // clock
+};
 
 // ----- Tape -----
 TapeRecall tape;
 
 // ---- Global Const ----
-const u_int16_t ccMaxspeed = 150;   // Frequency to send MIDICC messages on. Value in millis.
+const u_int16_t ccMaxspeed = 75;    // Frequency to send MIDICC messages on. Value in millis.
 const u_int16_t sensorLag = 25;     // From first sensorvalue in millis to get abetter velocity value. Max value set by array size in ResSensor
 const u_int16_t midiCooldown = 150; // Minimum time between last note ended and new one
 
@@ -181,14 +188,8 @@ void setup()
   // (sck, mosi, miso, cs);
   adc.begin(PIN_CLK, PIN_TX, PIN_RX, PIN_CS);
 
-  // temp LED setup
-  pinMode(LED0_RPin, OUTPUT);
-  pinMode(LED0_GPin, OUTPUT);
-  pinMode(LED0_BPin, OUTPUT);
-
-  pinMode(LED1_RPin, OUTPUT);
-  pinMode(LED1_GPin, OUTPUT);
-  pinMode(LED1_BPin, OUTPUT);
+  // LED setup
+  ledHandler.setup(ledPins, colors);
 }
 
 void loop()
@@ -205,6 +206,7 @@ void loop()
 
   // Recive new midi
   MIDI.read();
+  ledHandler.draw();
 }
 
 void handleClock()
@@ -310,23 +312,6 @@ u_int16_t handleADC(byte padNum)
   return (u_int16_t)adc.readADC(readPin);
 }
 
-void LED(byte ledN, byte r, byte g, byte b)
-{
-  if (ledN == 0)
-  {
-    analogWrite(LED0_RPin, r);
-    analogWrite(LED0_GPin, g);
-    analogWrite(LED0_BPin, b);
-  }
-
-  if (ledN == 1)
-  {
-    analogWrite(LED1_RPin, r);
-    analogWrite(LED1_GPin, g);
-    analogWrite(LED1_BPin, b);
-  }
-}
-
 void buttons()
 {
   // when button is pressed is where the loop ends.
@@ -344,17 +329,13 @@ void buttons()
   }
 
   if (buttonTop.getState())
-    LED(0, 85, 0, 0);
-  else
-    LED(0, 85, 25, 40);
+    ledHandler.setLed(0, 1);
 
   if (buttonBottom.getToggle())
     tape.stopPlayback();
 
   if (buttonBottom.getState())
-    LED(1, 85, 0, 0);
-  else
-    LED(1, 40, 25, 40);
+    ledHandler.setLed(1, 1);
 
   updateJoy();
 }
