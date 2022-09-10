@@ -32,14 +32,24 @@ bool buttonHandler::getToggle()
   return temp;
 }
 
+bool buttonHandler::getRelease()
+{
+  // return true once when state turned false
+  update();
+  bool temp = releaseState;
+  releaseState = false;
+
+  return temp;
+}
+
 void buttonHandler::update()
 {
   bool reading = digitalRead(pinNum);
   // invert if configured in pullup mode
   reading = modePulldown ? reading : !reading;
 
-  // if state changed, start timer
-  if (reading != lastState)
+  // if reading changed, start timer
+  if (reading != lastReading)
   {
     timer = millis();
   }
@@ -49,8 +59,15 @@ void buttonHandler::update()
     // only change toggleState on first cycle of state == true
     if (!state)
       toggleState = reading;
+
+    // only change releaseState on first cycle of state == false
+    if (state)
+      releaseState = !reading;
+
+    lastState = state;
+
     state = reading;
   }
 
-  lastState = reading;
+  lastReading = reading;
 }

@@ -9,6 +9,7 @@ class TapeRecall
 public:
   void setup(byte _nPads);
   void addEvent(u_int16_t _midiEvent, byte _padNum, u_int32_t _timeStamp);
+  void startOfRecall();
   void recall(u_int32_t _recallLenght);
   void playback();
   void stopPlayback();

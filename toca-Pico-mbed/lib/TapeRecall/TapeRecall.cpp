@@ -24,10 +24,16 @@ void TapeRecall::addEvent(u_int16_t _midiEvent, byte _padNum, u_int32_t _timeSta
   tapeIndex = (tapeIndex + 1) % tapeLenght;
 }
 
+void TapeRecall::startOfRecall()
+{
+  SerialTinyUSB.println("Recall start time");
+  startOfRecal = millis();
+}
+
 void TapeRecall::recall(u_int32_t _recallLenght)
 {
-  SerialTinyUSB.println("Recall start");
-  startOfRecal = millis();
+  SerialTinyUSB.print("Recall start. Lenght: ");
+  SerialTinyUSB.println(_recallLenght);
   playing = true;
   // lenght in millis of recal
   recallLenght = _recallLenght;
@@ -88,10 +94,10 @@ void TapeRecall::playback()
       // if time for next event in line has passed
       if ((channelTimeStamp[playbackIndex] <= playheadPosition) && !looped)
       {
-        SerialTinyUSB.print("playbackIndex: ");
-        SerialTinyUSB.print(playbackIndex);
-        SerialTinyUSB.print(" i: ");
-        SerialTinyUSB.println(i);
+        // SerialTinyUSB.print("playbackIndex: ");
+        // SerialTinyUSB.print(playbackIndex);
+        // SerialTinyUSB.print(" i: ");
+        // SerialTinyUSB.println(i);
 
         // SerialTinyUSB.print("channelTimeStamp: ");
         // SerialTinyUSB.print(channelTimeStamp[playbackIndex]);
