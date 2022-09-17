@@ -1,4 +1,5 @@
 # toca
+![image of toca](https://github.com/berg-lund/toca/blob/main/img/Toca%20-%20Astrid%201.jpg)
 Toca is a MIDI-controller with a tactile interface that is made to be explored with your hands. To find the unexpected rather than to perform with perfection. When you put your fingers over two or more of the metal pads your skin becomes part of the circuit. The analog circuit detects the amount of touch and a raspberry pi Pico sends MIDI over USB with both veolocity and aftertouch. Since everyone's skin is different the experience will be different and you have to find your own unique way of playing.
 
 The pads from melted tinn are made from reused material and the layout is parametricaly design in grasshopper to enable every unit to be unique. The enclosure is made of solid spruce and is CNC machined.
