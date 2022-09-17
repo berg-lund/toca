@@ -7,43 +7,6 @@
 #include "LedHandler.h"
 #include "TapeRecall.h"
 
-/*
-------TO DO------
-* Why does it just hang some times??? Probably some array that tries to get read or written out of bounds
-* Sometimes the loop gets stuck. I don't know why.
-
-* Make functions for buttons and joystick
-  * Can updateJoy be done inside buttons instead of its own function?
-  * can getJoy be just joyValue * getClock?
-
-* LEDHandler
-  * Prio doesn't seem to work.
-  * Can nLeds, nPins and nColors be defined in main.h?
-  * Add LED events on pad
-
-* First event after startup is missed in playback in TapeRecall
-* Clock
-  * Averageing isn't doing what I think. Bigger array doesn't help. even a 1 millisecond error per quarternote gets in to 16th note territory prety quickly.
-  * Might be because of all the serial data slowing the pico down
-  * can clockArray be byte? 255 * 24 is 6 second per quarternote? But wouldn't work well with first new value. Needs to be capped instead of overflowed
-  *
-
-* If recal is made witout any data in the recal lenght. recallIndex will stay the same as from the last successfull recal. Might not be a bug but a feature? Or might not do anything
-* Is setting up the pins with input pulldown (in ResSensor.setup()) affecting the values read by them?
-* Look into defining callsbacks in main.h file
-* Clean upp commented serial prints in TapeRecall
-
-* Exclude libraries that aren't needed
-* Add CV functionality
-* Add tap tempo functionality??
-
-# Serial communication is buffered and not realtime. For example, note off might not be showned until more data is sent. Debugg through MIDIOx
-# Serial communication doesn't initiate until a while. between 100 and 4000 loops. Doesn't need a fix just remember.
-# &
-# static variables are always global to it's class. Not specific to any specific instance of it.
-# do intilialize variables to a value before use
-*/
-
 // ----- USB MIDI object ----
 Adafruit_USBD_MIDI usb_midi;
 
@@ -244,12 +207,12 @@ void handleClock()
   if ((clockIndex % 24) == 0)
   {
     ledHandler.setLed(1, 4, 1, clockValue / 2);
-    SerialTinyUSB.print("Clock recived: ");
-    SerialTinyUSB.print(clockArray[clockIndex]);
-    SerialTinyUSB.print(" Averaged: ");
-    SerialTinyUSB.print(clockValue);
-    SerialTinyUSB.print(" index: ");
-    SerialTinyUSB.println(clockIndex);
+    // SerialTinyUSB.print("Clock recived: ");
+    // SerialTinyUSB.print(clockArray[clockIndex]);
+    // SerialTinyUSB.print(" Averaged: ");
+    // SerialTinyUSB.print(clockValue);
+    // SerialTinyUSB.print(" index: ");
+    // SerialTinyUSB.println(clockIndex);
   }
 
   clockIndex = (clockIndex + 1) % clockArrayLength;
