@@ -69,7 +69,7 @@ TapeRecall tape;
 // ---- Global Const ----
 const u_int16_t ccMaxspeed = 75;    // Frequency to send MIDICC messages on. Value in millis.
 const u_int16_t sensorLag = 25;     // From first sensorvalue in millis to get abetter velocity value. Max value set by array size in ResSensor
-const u_int16_t midiCooldown = 150; // Minimum time between last note ended and new one
+const u_int16_t midiCooldown = 32; // Minimum time between last note ended and new one
 
 const byte nSensors = 8;
 const u_int16_t threshold = 120;
