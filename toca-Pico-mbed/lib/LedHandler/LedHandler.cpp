@@ -7,7 +7,7 @@ void LedHandler::setup(byte _pins[nLeds][nPins], byte _colors[nColors][nPins])
   defaultState = true;
 
   memcpy_P(pins, _pins, 6);
-  memcpy_P(colors, _colors, 15);
+  memcpy_P(colors, _colors, nColors * nPins);
 
   for (auto &led : pins)
   {

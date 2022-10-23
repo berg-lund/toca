@@ -49,12 +49,18 @@ byte ledPins[2][3]{
     {11, 12, 13},
     {8, 9, 10}};
 
-byte colors[5][3]{
-    {85, 15, 40},  // default
-    {85, 5, 14},   // button press
-    {100, 60, 80}, // sensor press
-    {85, 15, 80},  // playback on
-    {85, 35, 14}   // clock
+// number of colors here must correspont to "#define nColors n" in LedHandler.h
+byte colors[10][3]{
+    {85, 15, 40},   // 0 default
+    {85, 5, 14},    // 1 button press
+    {100, 60, 80},  // 2 sensor press
+    {85, 15, 80},   // 3 playback on
+    {85, 35, 14},   // 4 clock
+    {255, 0, 0},    // 5 red
+    {0, 255, 0},    // 6 green
+    {0, 0, 255},    // 7 blue
+    {255, 0, 255},  // 8 purple
+    {255, 255, 255} // 9 white
 };
 
 // ----- Tape -----

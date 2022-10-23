@@ -4,9 +4,9 @@
 
 #include <Arduino.h>
 
-#define nLeds 2 // number of LEDS
-#define nPins 3 // number of pins per led, RGB
-#define nColors 5 // number of colors
+#define nLeds 2    // number of LEDS
+#define nPins 3    // number of pins per led, RGB
+#define nColors 10 // number of colors
 
 class LedHandler
 {
