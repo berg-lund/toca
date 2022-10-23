@@ -18,7 +18,7 @@ private:
   void stopNotes(byte _padsPlaying);
 
   bool playing, looped;
-  u_int32_t recallLenght, startOfRecal;
+  u_int32_t recallLength, startOfRecal;
   u_int16_t recallIndexLength;
   byte nPads, padsPlaying;
 
